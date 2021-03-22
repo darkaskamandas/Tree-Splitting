@@ -1,0 +1,126 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+class Solution {
+    class Node
+    {
+        public int size = 1;
+        public int parent = -1;
+        public HashSet<int> children = new HashSet<int>();
+    }
+
+    static void Main(String[] args) {
+        int n = Convert.ToInt32(Console.ReadLine());
+        HashSet<int>[] vertexNeighbors = new HashSet<int>[n];
+
+        for (int i = 0; i < n; ++i)
+        {
+            vertexNeighbors[i] = new HashSet<int>();
+        }
+
+        for (int i = 0; i < n - 1; ++i)
+        {
+            string[] tokens = Console.ReadLine().Split(' ');
+            int u = Convert.ToInt32(tokens[0]);
+            int v = Convert.ToInt32(tokens[1]);
+
+            vertexNeighbors[u-1].Add(v-1);
+            vertexNeighbors[v-1].Add(u-1);
+        }
+
+        Node[] nodes = new Node[n];
+        for (int i = 0; i < n; ++i)
+        {
+            nodes[i] = new Node();
+        }
+
+        LinkedList<int> leaves = new LinkedList<int>();
+        leaves.AddLast(0);
+
+        while (leaves.Count > 0)
+        {
+            int current = leaves.First.Value;
+            leaves.RemoveFirst();
+
+            foreach (int neighbor in vertexNeighbors[current])
+            {
+                nodes[current].children.Add(neighbor);
+                //nodes[current].size += nodes[neighbor].size;
+                nodes[neighbor].parent = current;
+                vertexNeighbors[neighbor].Remove(current);
+                leaves.AddLast(neighbor);
+            }
+        }
+
+        LinkedList<int> queue = new LinkedList<int>();
+        LinkedList<int> stack = new LinkedList<int>();
+        
+        queue.AddLast(0);
+        while (queue.Count > 0)
+        {
+            int current = queue.First.Value;
+            queue.RemoveFirst();
+            stack.AddFirst(current);
+
+            foreach (int i in nodes[current].children)
+            {
+                queue.AddLast(i);
+            }
+        }
+
+        foreach (int i in stack)
+        {
+            int size = 1;
+            foreach (int j in nodes[i].children)
+            {
+                size += nodes[j].size;
+            }
+            nodes[i].size = size;
+        }
+
+        int m = Convert.ToInt32(Console.ReadLine());
+        int ans = 0;
+        for (int i = 0; i < m; ++i)
+        {
+            int j = Convert.ToInt32(Console.ReadLine());
+            int v = ans ^ j;
+            ans = GetTreeSize(nodes, v-1);
+            RemoveNode(nodes, v-1);
+            Console.Out.WriteLine(ans);
+        }
+    }
+
+    private static void RemoveNode(Node[] nodes, int v)
+    {
+        // Remove v from children
+        foreach (var child in nodes[v].children)
+        {
+            nodes[child].parent = -1;
+        }
+
+        // Remove v from parent, and decrement size up the chain
+        int vSize = nodes[v].size;
+        if (nodes[v].parent >= 0)
+        {
+            nodes[nodes[v].parent].children.Remove(v);
+        }
+        
+        nodes[v].children = new HashSet<int>();
+        nodes[v].size = 1;
+
+        for (v = nodes[v].parent; v >= 0; v = nodes[v].parent)
+        {
+            nodes[v].size -= vSize;
+        }
+    }
+
+    private static int GetTreeSize(Node[] nodes, int j)
+    {
+        while (nodes[j].parent >= 0)
+        {
+            j = nodes[j].parent;
+        }
+
+        return nodes[j].size;
+    }
+}
